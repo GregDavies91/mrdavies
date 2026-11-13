@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Word Families Jeopardy — Unit 3E</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0b1020;--card:#11182e;--ink:#e8ecf4;--muted:#7a869a;--accent:#00d4aa;--accent2:#ffd600;--red:#ff4757;--blue:#4d96ff;--violet:#c77dff;--orange:#ff9f1c}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;padding:20px}
+.header{display:flex;align-items:center;justify-content:space-between;max-width:1100px;margin:0 auto 16px;flex-wrap:wrap;gap:12px}
+h1{font-size:clamp(22px,4vw,32px);font-weight:800;margin:0;letter-spacing:-0.5px}
+h1 span{color:var(--accent)}
+.scoreboard{display:flex;gap:16px;flex-wrap:wrap}
+.team{background:var(--card);border:1px solid #1e2a4a;border-radius:12px;padding:10px 18px;min-width:140px}
+.team-name{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:4px}
+.team-score{font-size:28px;font-weight:800;font-family:monospace;color:var(--accent2)}
+.team-score.correct{animation:pop .3s ease}
+@keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.2)}100%{transform:scale(1)}}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;max-width:1100px;margin:0 auto}
+@media(max-width:900px){.grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:600px){.grid{grid-template-columns:repeat(2,1fr)}}
+.cell{aspect-ratio:1;background:var(--card);border:2px solid #1e2a4a;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:.15s;position:relative}
+.cell:hover:not(.used){border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,212,170,.15)}
+.cell.used{opacity:.4;cursor:default;pointer-events:none}
+.cell-value{font-size:24px;font-weight:800;color:var(--accent2)}
+.cell-category{font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin-top:2px}
+.cell.used .cell-value{color:#3a4a6a}
+.cell.used .cell-category{color:#3a4a6a}
+
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
+.modal.on{display:flex;animation:fade .2s}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.modal-box{background:var(--card);border:1px solid #1e2a4a;border-radius:20px;padding:32px;max-width:700px;width:100%;max-height:90vh;overflow:auto}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px}
+.modal-category{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--accent);background:rgba(0,212,170,.15);padding:4px 12px;border-radius:999px}
+.modal-value{font-family:monospace;font-size:20px;font-weight:800;color:var(--accent2)}
+.modal-close{background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;line-height:1}
+.modal-close:hover{color:var(--ink)}
+.modal-question{font-size:24px;font-weight:700;line-height:1.3;margin-bottom:24px}
+.modal-options{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+@media(max-width:500px){.modal-options{grid-template-columns:1fr}}
+.modal-opt{padding:16px 20px;border:2px solid #233050;border-radius:12px;background:#0a1128;color:var(--ink);font-size:17px;font-weight:600;font-family:inherit;cursor:pointer;transition:.15s;text-align:left}
+.modal-opt:hover:not(.locked){border-color:var(--accent);transform:translateX(4px)}
+.modal-opt.correct{background:rgba(0,212,170,.2);border-color:var(--accent);color:var(--accent)}
+.modal-opt.wrong{background:rgba(255,71,87,.15);border-color:var(--red);color:var(--red)}
+.modal-opt.locked{cursor:default}
+.modal-feedback{padding:16px;border-radius:12px;font-size:16px;line-height:1.5;display:none}
+.modal-feedback.on{display:block;animation:fade .2s}
+.modal-feedback.correct{background:rgba(0,212,170,.15);border:1px solid var(--accent);color:var(--accent)}
+.modal-feedback.wrong{background:rgba(255,71,87,.1);border:1px solid var(--red);color:var(--red)}
+.modal-actions{display:flex;gap:12px;justify-content:flex-end}
+.btn{padding:12px 28px;border:0;border-radius:10px;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;transition:.15s}
+.btn-primary{background:linear-gradient(135deg,var(--accent),#00b896);color:#041a14}
+.btn-secondary{background:#1e2a4a;color:var(--ink);border:1px solid #233050}
+.btn-danger{background:linear-gradient(135deg,var(--red),#ff2e43);color:#fff}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+
+.legend{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-top:20px;max-width:1100px;margin-left:auto;margin-right:auto;font-size:13px}
+.legend-item{display:flex;align-items:center;gap:6px}
+.legend-box{width:18px;height:18px;border-radius:4px;border:2px solid}
+.legend-box.avail{background:var(--card);border-color:#1e2a4a}
+.legend-box.used{background:#1a2238;border-color:#233050;opacity:.4}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Word <span>Families</span> Jeopardy</h1>
+  <div class="scoreboard" id="scoreboard">
+    <div class="team" id="team1"><div class="team-name">Team 1</div><div class="team-score" id="score1">0</div></div>
+    <div class="team" id="team2"><div class="team-name">Team 2</div><div class="team-score" id="score2">0</div></div>
+  </div>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<div class="legend" id="legend"></div>
+
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div>
+        <span class="modal-category" id="modalCat"></span>
+        <span class="modal-value" id="modalVal"></span>
+      </div>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-question" id="modalQ"></div>
+    <div class="modal-options" id="modalOpts"></div>
+    <div class="modal-feedback" id="modalFb"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="btnReveal" onclick="revealAnswer()" disabled>Reveal Answer</button>
+      <button class="btn btn-primary" id="btnAward" onclick="awardPoints()" disabled>Award Points</button>
+      <button class="btn btn-danger" onclick="closeModal()">Close (No Points)</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── Questions (same as multiplayer game) ────────────────────────
+const CATEGORIES = [
+  {name:"Noun → Adj", color:"#00d4aa", qs:[
+    {q:"anger → ?", opts:["angry","angerous","angered","angrily"], a:0},
+    {q:"anxiety → ?", opts:["anxious","anxietious","anxieted","anxiously"], a:0},
+    {q:"depression → ?", opts:["depressed","depressionary","depressived","depressingly"], a:0},
+    {q:"disgust → ?", opts:["disgusted","disgustful","disgustive","disgustly"], a:0},
+    {q:"envy → ?", opts:["envious","envyful","envied","envily"], a:0},
+    {q:"fear → ?", opts:["afraid","fearful","fearless","fearsome"], a:0},
+    {q:"happiness → ?", opts:["happy","happying","happihood","happiful"], a:0},
+    {q:"pride → ?", opts:["proud","prideful","priden","pridely"], a:0},
+    {q:"sadness → ?", opts:["sad","sadful","sadness","sadly"], a:0},
+    {q:"shame → ?", opts:["ashamed","shameful","shamed","shamely"], a:0},
+    {q:"surprise → ?", opts:["surprised","surprising","surpriseful","surprisive"], a:0},
+  ]},
+  {name:"Adverbs", color:"#ffd600", qs:[
+    {q:"sad → adverb", opts:["sadly","sadfully","sadness","sadingly"], a:0},
+    {q:"anxious → adverb", opts:["anxiously","anxiousful","anxiously","anxietly"], a:0},
+    {q:"surprising → adverb", opts:["surprisingly","surprisedly","surprisely","surprisfully"], a:0},
+    {q:"proud → adverb", opts:["proudly","proudful","proudness","proudily"], a:0},
+    {q:"hopeful → adverb", opts:["hopefully","hopefuly","hopefully","hopely"], a:0},
+    {q:"suspicious → adverb", opts:["suspiciously","suspiciousful","suspicious","suspicily"], a:0},
+    {q:"hungry → adverb", opts:["hungrily","hungrilly","hungerly","hungfully"], a:0},
+  ]},
+  {name:"-ed / -ing", color:"#4d96ff", qs:[
+    {q:"The film was ___ (bore).", opts:["bored","boring","boreded","boren"], a:1},
+    {q:"I felt ___ by the smell. (disgust)", opts:["disgusted","disgusting","disgustful","disgustly"], a:0},
+    {q:"The roller coaster was ___! (excite)", opts:["excited","exciting","excitement","excitely"], a:1},
+    {q:"She was ___ after the run. (tire)", opts:["tired","tiring","tireful","tirely"], a:0},
+  ]},
+  {name:"-ful / -less", color:"#c77dff", qs:[
+    {q:"care → ?", opts:["careful","careless","both","neither"], a:2},
+    {q:"hope → ?", opts:["hopeful","hopeless","both","neither"], a:2},
+    {q:"pain → ?", opts:["painful","painless","both","neither"], a:2},
+    {q:"power → ?", opts:["powerful","powerless","both","neither"], a:2},
+  ]},
+  {name:"Mixed Forms", color:"#ff9f1c", qs:[
+    {q:"He was very ___ of his results. (pride)", opts:["proud","pride","proudly","proudness"], a:0},
+    {q:"The news was ___ . (shock)", opts:["shocking","shocked","shockful","shockly"], a:0},
+    {q:"She felt ___ when she lost. (disappoint)", opts:["disappointed","disappointing","disappointful","disappointly"], a:0},
+    {q:"It was a ___ surprise. (please)", opts:["pleasant","pleased","pleasingly","pleasantly"], a:0},
+    {q:"He looked at me ___ . (suspicious)", opts:["suspiciously","suspicious","suspicion","suspiciousful"], a:0},
+  ]},
+];
+
+const VALUES = [100,200,300,400,500];
+let scores = [0,0];
+let currentTeam = 0;
+let currentCell = null;
+let answered = false;
+
+const grid = document.getElementById('grid');
+const modal = document.getElementById('modal');
+const modalCat = document.getElementById('modalCat');
+const modalVal = document.getElementById('modalVal');
+const modalQ = document.getElementById('modalQ');
+const modalOpts = document.getElementById('modalOpts');
+const modalFb = document.getElementById('modalFb');
+const btnReveal = document.getElementById('btnReveal');
+const btnAward = document.getElementById('btnAward');
+const score1 = document.getElementById('score1');
+const score2 = document.getElementById('score2');
+const team1 = document.getElementById('team1');
+const team2 = document.getElementById('team2');
+const legend = document.getElementById('legend');
+
+// ─── Build board ────────────────────────────────────────────────
+CATEGORIES.forEach((cat, ci) => {
+  VALUES.forEach((val, vi) => {
+    const qIndex = vi;
+    if(qIndex >= cat.qs.length) return; // skip if not enough questions
+    const q = cat.qs[qIndex];
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.dataset.ci = ci;
+    cell.dataset.vi = vi;
+    cell.innerHTML = `<div class="cell-value">${val}</div><div class="cell-category">${cat.name}</div>`;
+    cell.style.borderTop = `4px solid ${cat.color}`;
+    cell.onclick = () => openCell(ci, vi, val, cat, q);
+    grid.appendChild(cell);
+  });
+});
+
+// Legend
+CATEGORIES.forEach(cat => {
+  const item = document.createElement('div');
+  item.className = 'legend-item';
+  item.innerHTML = `<div class="legend-box avail" style="border-color:${cat.color}"></div><span>${cat.name}</span>`;
+  legend.appendChild(item);
+});
+
+// ─── Modal logic ────────────────────────────────────────────────
+function openCell(ci, vi, val, cat, q){
+  currentCell = {ci, vi, val, cat, q};
+  answered = false;
+  modalCat.textContent = cat.name;
+  modalCat.style.color = cat.color;
+  modalCat.style.borderColor = cat.color;
+  modalVal.textContent = val;
+  modalQ.textContent = q.q;
+  modalOpts.innerHTML = q.opts.map((opt,i)=>`<button class="modal-opt" data-idx="${i}" onclick="selectAnswer(${i})">${escapeHtml(opt)}</button>`).join('');
+  modalFb.className = 'modal-feedback';
+  modalFb.textContent = '';
+  btnReveal.disabled = true;
+  btnAward.disabled = true;
+  modal.classList.add('on');
+}
+
+function selectAnswer(idx){
+  if(answered) return;
+  answered = true;
+  const q = currentCell.q;
+  const buttons = modalOpts.querySelectorAll('.modal-opt');
+  buttons.forEach((b,i)=>{
+    b.classList.add('locked');
+    if(i === q.a) b.classList.add('correct');
+    else if(i === idx) b.classList.add('wrong');
+  });
+  if(idx === q.a){
+    modalFb.textContent = '✅ Correct!';
+    modalFb.className = 'modal-feedback correct on';
+  }else{
+    modalFb.textContent = `❌ Incorrect. Correct answer: ${escapeHtml(q.opts[q.a])}`;
+    modalFb.className = 'modal-feedback wrong on';
+  }
+  btnReveal.disabled = false;
+  btnAward.disabled = false;
+}
+
+function revealAnswer(){
+  // just visual, points awarded by Award button
+  btnReveal.disabled = true;
+}
+
+function awardPoints(){
+  if(!currentCell) return;
+  const teamEl = currentTeam === 0 ? team1 : team2;
+  const scoreEl = currentTeam === 0 ? score1 : score2;
+  scores[currentTeam] += currentCell.val;
+  scoreEl.textContent = scores[currentTeam];
+  teamEl.querySelector('.team-score').classList.add('correct');
+  setTimeout(()=>teamEl.querySelector('.team-score').classList.remove('correct'), 300);
+  // mark cell used
+  const cell = document.querySelector(`.cell[data-ci="${currentCell.ci}"][data-vi="${currentCell.vi}"]`);
+  if(cell) cell.classList.add('used');
+  // switch team
+  currentTeam = 1 - currentTeam;
+  updateTeamHighlight();
+  closeModal();
+}
+
+function closeModal(){
+  modal.classList.remove('on');
+  currentCell = null;
+  answered = false;
+}
+
+function updateTeamHighlight(){
+  team1.style.borderColor = currentTeam===0 ? 'var(--accent)' : '#1e2a4a';
+  team2.style.borderColor = currentTeam===1 ? 'var(--accent)' : '#1e2a4a';
+}
+
+function escapeHtml(s){
+  return String(s)
+    .replace(/&/g, '&')
+    .replace(/</g, '<')
+    .replace(/>/g, '>')
+    .replace(/"/g, '"')
+    .replace(/'/g, "'");
+}
+
+// Keyboard: 1-5 for values, Q/W/E/R/T for categories (optional)
+document.addEventListener('keydown', e=>{
+  if(modal.classList.contains('on')){
+    if(e.key >= '1' && e.key <= '4') selectAnswer(parseInt(e.key)-1);
+    if(e.key === 'r' || e.key === 'R') revealAnswer();
+    if(e.key === 'a' || e.key === 'A') awardPoints();
+    if(e.key === 'Escape') closeModal();
+  }
+});
+
+updateTeamHighlight();
+</script>
+</body>
+</html>

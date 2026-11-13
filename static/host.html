@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Word Families — Host</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0b1020;--card:#11182e;--ink:#e8ecf4;--muted:#7a869a;--accent:#00d4aa;--accent2:#ffd600;--red:#ff4757;--blue:#4d96ff;--violet:#c77dff}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;padding:20px}
+.header{display:flex;align-items:center;justify-content:space-between;max-width:1000px;margin:0 auto 20px;flex-wrap:wrap;gap:12px}
+h1{font-size:clamp(22px,4vw,32px);font-weight:800;margin:0;letter-spacing:-0.5px}
+h1 span{color:var(--accent)}
+.room-badge{background:linear-gradient(135deg,#1a2545,#11182e);border:1px solid #233050;border-radius:12px;padding:10px 18px;font-family:monospace;font-size:22px;font-weight:800;color:var(--accent2);letter-spacing:4px}
+.btn{padding:10px 20px;border:0;border-radius:10px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;transition:.15s}
+.btn-primary{background:linear-gradient(135deg,var(--accent),#00b896);color:#041a14}
+.btn-primary:hover:not(:disabled){box-shadow:0 6px 20px rgba(0,212,170,.3)}
+.btn-danger{background:linear-gradient(135deg,var(--red),#ff2e43);color:#fff}
+.btn-secondary{background:#1e2a4a;color:var(--ink);border:1px solid #233050}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.grid{display:grid;grid-template-columns:1fr 380px;gap:20px;max-width:1000px;margin:0 auto}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--card);border:1px solid #1e2a4a;border-radius:16px;padding:20px}
+.panel h3{margin:0 0 16px;font-size:15px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.question-box{background:#0a1128;border:1px solid #233050;border-radius:12px;padding:20px;margin-bottom:16px}
+.qmeta{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;font-size:12px}
+.tag{background:rgba(0,212,170,.15);color:var(--accent);padding:4px 10px;border-radius:999px;font-weight:700}
+.qtext{font-size:22px;font-weight:700;line-height:1.3}
+.opts-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.opt-btn{padding:14px 16px;border:2px solid #233050;border-radius:10px;background:#0a1128;color:var(--ink);font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;text-align:left;transition:.15s}
+.opt-btn:hover{border-color:var(--accent)}
+.opt-btn.correct{background:rgba(0,212,170,.2);border-color:var(--accent);color:var(--accent)}
+.opt-btn.wrong{background:rgba(255,71,87,.15);border-color:var(--red);color:var(--red)}
+.controls{display:flex;gap:10px;flex-wrap:wrap}
+.players-list{display:flex;flex-direction:column;gap:8px}
+.player-row{display:flex;align-items:center;justify-content:space-between;background:#0a1128;border:1px solid #233050;border-radius:10px;padding:10px 14px}
+.player-name{font-weight:600}
+.player-score{font-family:monospace;font-size:18px;font-weight:800;color:var(--accent2)}
+.kick-btn{background:none;border:1px solid #3a4a6a;color:var(--muted);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer}
+.kick-btn:hover{border-color:var(--red);color:var(--red)}
+.leaderboard{display:flex;flex-direction:column;gap:8px}
+.lb-row{display:flex;align-items:center;gap:12px;background:#0a1128;border:1px solid #233050;border-radius:10px;padding:12px 14px}
+.lb-rank{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#233050,#1e2a4a);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:var(--muted)}
+.lb-rank.gold{background:linear-gradient(135deg,#ffd600,#ffb300);color:#1a1400}
+.lb-rank.silver{background:linear-gradient(135deg,#bdc3c7,#95a5a6);color:#1a1a1a}
+.lb-rank.bronze{background:linear-gradient(135deg,#cd7f32,#b87333);color:#fff}
+.lb-name{flex:1;font-weight:600}
+.lb-score{font-family:monospace;font-size:18px;font-weight:800;color:var(--accent2)}
+.hidden{display:none}
+.phase-badge{display:inline-block;padding:4px 12px;border-radius:999px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px}
+.phase-lobby{background:rgba(77,150,255,.15);color:var(--blue)}
+.phase-question{background:rgba(0,212,170,.15);color:var(--accent)}
+.phase-answer{background:rgba(199,125,255,.15);color:var(--violet)}
+.phase-leaderboard{background:rgba(255,214,0,.15);color:var(--accent2)}
+.phase-ended{background:rgba(255,71,87,.15);color:var(--red)}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Word <span>Families</span> — Host</h1>
+  <div class="room-badge" id="roomCode">----</div>
+</div>
+
+<div class="grid">
+  <div>
+    <div class="panel">
+      <h3>Current Question</h3>
+      <div class="question-box" id="qBox">
+        <div class="qmeta">
+          <span class="tag" id="qCat">—</span>
+          <span id="qCounter">Question 0 / 0</span>
+          <span class="phase-badge phase-lobby" id="phaseBadge">LOBBY</span>
+        </div>
+        <div class="qtext" id="qText">Waiting for players…</div>
+        <div class="opts-grid" id="optsGrid"></div>
+      </div>
+      <div class="controls" id="controls">
+        <button class="btn btn-primary" id="btnStart" onclick="send({type:'start'})">Start Game</button>
+        <button class="btn btn-primary" id="btnReveal" onclick="send({type:'reveal'})" disabled>Reveal Answer</button>
+        <button class="btn btn-secondary" id="btnNext" onclick="send({type:'next'})" disabled>Next Question</button>
+        <button class="btn btn-danger" id="btnEnd" onclick="send({type:'end'})" disabled>End Game</button>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="panel">
+      <h3>Players <span id="playerCount">(0)</span></h3>
+      <div class="players-list" id="playersList">No players yet</div>
+    </div>
+    <div class="panel" style="margin-top:16px">
+      <h3>Leaderboard</h3>
+      <div class="leaderboard" id="leaderboard">—</div>
+    </div>
+  </div>
+</div>
+
+<script src="game.js"></script>
+<script>
+const params = new URLSearchParams(location.search);
+const room = params.get('room');
+if(!room){ alert('No room code in URL'); throw 'no room'; }
+document.getElementById('roomCode').textContent = room;
+
+let ws, myRole = 'host';
+function connect(){
+  const WS_HOST = window.WS_HOST || (location.protocol==='https:' ? 'wss://mrdavies.onrender.com' : location.host);
+  ws = new WebSocket(`${WS_HOST.startsWith('ws')?'':'ws://'}${WS_HOST}/ws/${room}/${myRole}`);
+  ws.onopen = () => console.log('host connected');
+  ws.onmessage = e => handleMsg(JSON.parse(e.data));
+  ws.onclose = () => setTimeout(connect, 2000);
+}
+function send(msg){ if(ws && ws.readyState===1) ws.send(JSON.stringify(msg)); }
+
+function handleMsg(msg){
+  if(msg.type==='state'){
+    renderState(msg);
+  }else if(msg.type==='host_ready'){
+    console.log('host ready');
+  }else if(msg.type==='error'){
+    alert(msg.msg);
+  }
+}
+
+function renderState(s){
+  const phase = s.phase;
+  document.getElementById('phaseBadge').textContent = phase.toUpperCase();
+  document.getElementById('phaseBadge').className = 'phase-badge phase-'+phase;
+  document.getElementById('playerCount').textContent = `(${s.players.length})`;
+
+  // players list
+  const pl = document.getElementById('playersList');
+  if(s.players.length===0){ pl.innerHTML = 'No players yet'; }
+  else{
+    pl.innerHTML = s.players.map(p=>`<div class="player-row"><span class="player-name">${escapeHtml(p.name)}</span><span class="player-score">${p.score}</span><button class="kick-btn" onclick="send({type:'kick',name:'${escapeJs(p.name)}'})">Remove</button></div>`).join('');
+  }
+
+  // leaderboard
+  const lb = document.getElementById('leaderboard');
+  if(s.players.length===0){ lb.innerHTML = '—'; }
+  else{
+    const sorted = [...s.players].sort((a,b)=>b.score-a.score);
+    lb.innerHTML = sorted.map((p,i)=>`<div class="lb-row"><div class="lb-rank ${i===0?'gold':i===1?'silver':i===2?'bronze':''}">${i+1}</div><div class="lb-name">${escapeHtml(p.name)}</div><div class="lb-score">${p.score}</div></div>`).join('');
+  }
+
+  // question
+  if(phase==='question' && s.question){
+    document.getElementById('qCat').textContent = s.question.cat;
+    document.getElementById('qCounter').textContent = `Question ${s.q_index+1} / ${s.total_q}`;
+    document.getElementById('qText').textContent = s.question.text;
+    const grid = document.getElementById('optsGrid');
+    grid.innerHTML = s.question.options.map((opt,i)=>`<button class="opt-btn" data-idx="${i}">${escapeHtml(opt)}</button>`).join('');
+    document.getElementById('btnReveal').disabled = false;
+    document.getElementById('btnNext').disabled = true;
+  }else if(phase==='answer' && s.question){
+    document.getElementById('qCat').textContent = s.question.cat;
+    document.getElementById('qCounter').textContent = `Question ${s.q_index+1} / ${s.total_q}`;
+    document.getElementById('qText').textContent = s.question.text;
+    const grid = document.getElementById('optsGrid');
+    grid.innerHTML = s.question.options.map((opt,i)=>`<button class="opt-btn ${i===s.answer.correct_idx?'correct':'wrong'}" data-idx="${i}">${escapeHtml(opt)}</button>`).join('');
+    document.getElementById('btnReveal').disabled = true;
+    document.getElementById('btnNext').disabled = false;
+  }else if(phase==='leaderboard'){
+    document.getElementById('qText').textContent = 'Game Over — Final Results';
+    document.getElementById('optsGrid').innerHTML = '';
+    document.getElementById('btnNext').disabled = true;
+    document.getElementById('btnEnd').disabled = false;
+  }else if(phase==='ended'){
+    document.getElementById('qText').textContent = 'Game Ended';
+    document.getElementById('btnEnd').disabled = true;
+  }else{
+    document.getElementById('qText').textContent = 'Waiting for players…';
+    document.getElementById('optsGrid').innerHTML = '';
+    document.getElementById('btnStart').disabled = s.players.length===0;
+    document.getElementById('btnReveal').disabled = true;
+    document.getElementById('btnNext').disabled = true;
+    document.getElementById('btnEnd').disabled = true;
+  }
+}
+
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({ '&':'&','<':'<','>':'>','"':'"',"'":'''}[c]));}
+function escapeJs(s){return String(s).replace(/['"\\]/g,'\\$&');}
+
+connect();
+</script>
+</body>
+</html>

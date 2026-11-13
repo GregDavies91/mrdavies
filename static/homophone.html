@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Homophone Showdown</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#080a14; --card:#0f1320; --ink:#eef2ff; --muted:#6b7280;
+  --accent:#22d3ee; --accent2:#fbbf24; --green:#22c55e; --red:#ef4444; --violet:#a78bfa; --orange:#fb923c;
+  --ring:rgba(34,211,238,.35);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;font-family:'Space Grotesk',sans-serif;background:var(--bg);color:var(--ink);overflow:hidden}
+#app{height:100vh;display:flex;flex-direction:column}
+.screen{display:none;flex-direction:column;align-items:center;justify-content:center;padding:16px;gap:16px;width:100%;height:100%}
+.screen.on{display:flex}
+h1{font-size:clamp(28px,6vw,48px);font-weight:700;margin:0;letter-spacing:-1px;background:linear-gradient(135deg,var(--accent),var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent;text-align:center}
+.sub{color:var(--muted);font-size:clamp(14px,2.5vw,18px);text-align:center;max-width:500px}
+.card{background:var(--card);border:1px solid #1e293b;border-radius:20px;padding:28px 24px;max-width:480px;width:100%;box-shadow:0 25px 50px -12px rgba(0,0,0,.5)}
+.input-row{display:flex;flex-direction:column;gap:14px}
+label{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+input{padding:16px 18px;border:2px solid #1e293b;border-radius:12px;font-size:18px;font-weight:700;background:#050914;color:var(--ink);text-align:center;letter-spacing:3px;text-transform:uppercase;font-family:'JetBrains Mono',monospace}
+input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px var(--ring)}
+.btn{width:100%;padding:16px 0;border:0;border-radius:12px;font-size:17px;font-weight:700;font-family:inherit;cursor:pointer;transition:.15s}
+.btn-primary{background:linear-gradient(135deg,var(--accent),#06b6d4);color:#022c2f}
+.btn-primary:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 10px 30px rgba(34,211,238,.3)}
+.btn-secondary{background:#1e293b;color:var(--ink);border:1px solid #334155}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.error{color:var(--red);font-size:13px;min-height:18px;text-align:center}
+.hint{font-size:12px;color:var(--muted);text-align:center;line-height:1.5}
+
+/* waiting */
+.waiting{text-align:center}
+.spinner{width:48px;height:48px;border:4px solid #1e293b;border-top-color:var(--accent);border-radius:50%;margin:0 auto 20px;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.room-display{font-family:'JetBrains Mono',monospace;font-size:36px;font-weight:700;color:var(--accent2);letter-spacing:8px;margin:8px 0}
+
+/* game */
+.game-header{display:flex;justify-content:space-between;align-items:center;width:100%;max-width:700px;margin-bottom:8px;padding:0 4px}
+.player-badge{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid #1e293b;border-radius:12px;padding:8px 16px}
+.player-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#050914}
+.player-info{display:flex;flex-direction:column}
+.player-name{font-weight:600;font-size:13px}
+.player-score{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:var(--accent2)}
+.timer-bar{width:100%;max-width:700px;height:6px;background:#1e293b;border-radius:3px;overflow:hidden;margin-top:8px}
+.timer-fill{height:100%;width:100%;background:linear-gradient(90deg,var(--accent),var(--violet));border-radius:3px;transition:width .1s linear;transform-origin:left}
+.timer-fill.warn{background:linear-gradient(90deg,var(--orange),var(--red))}
+
+/* question card */
+.qcard{width:100%;max-width:700px;background:var(--card);border:1px solid #1e293b;border-radius:20px;padding:28px;box-shadow:0 20px 40px -10px rgba(0,0,0,.4)}
+.qmeta{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;font-size:11px}
+.qtag{padding:4px 10px;border-radius:999px;font-weight:700;text-transform:uppercase;letter-spacing:.8px}
+.qtag-easy{background:rgba(34,197,94,.15);color:var(--green)}
+.qtag-med{background:rgba(251,191,36,.15);color:var(--accent2)}
+.qtag-hard{background:rgba(239,68,68,.15);color:var(--red)}
+.qtag-trap{background:rgba(167,139,250,.15);color:var(--violet)}
+.qtext{font-size:clamp(20px,3.5vw,28px);font-weight:700;line-height:1.3;margin:0 0 24px}
+.qtext .blank{background:linear-gradient(90deg,var(--accent),var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent;font-family:'JetBrains Mono',monospace;letter-spacing:2px}
+.options{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:500px){.options{grid-template-columns:1fr}}
+.opt{display:flex;align-items:center;gap:14px;padding:18px 20px;border:2px solid #1e293b;border-radius:14px;background:#050914;color:var(--ink);font-size:clamp(15px,2.5vw,19px);font-weight:600;font-family:inherit;cursor:pointer;transition:.15s;text-align:left}
+.opt:hover:not(.locked){border-color:var(--accent);transform:translateX(4px);box-shadow:0 0 0 4px var(--ring)}
+.opt .k{width:36px;height:36px;flex:0 0 36px;border-radius:10px;background:linear-gradient(135deg,#1e293b,#0f172a);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:var(--muted);font-family:'JetBrains Mono',monospace}
+.opt.correct{background:rgba(34,197,94,.15);border-color:var(--green)}
+.opt.correct .k{background:var(--green);color:#022c15}
+.opt.wrong{background:rgba(239,68,68,.1);border-color:var(--red)}
+.opt.wrong .k{background:var(--red);color:#2c0707}
+.opt.locked{cursor:default}
+.feedback{margin-top:18px;padding:16px;border-radius:12px;font-size:15px;line-height:1.6;display:none;animation:fade .2s}
+.feedback.on{display:block}
+.feedback.good{background:rgba(34,197,94,.12);border:1px solid var(--green);color:var(--green)}
+.feedback.bad{background:rgba(239,68,68,.1);border:1px solid var(--red);color:var(--red)}
+.feedback .head{font-weight:700;margin-bottom:6px;font-size:16px}
+.feedback .why{color:#cbd5e1}
+.feedback .why b{color:var(--accent2)}
+
+/* scoreboard */
+.scoreboard{width:100%;max-width:700px;margin-top:16px}
+.sb-row{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid #1e293b;border-radius:12px;padding:12px 16px;margin-bottom:8px}
+.sb-rank{width:32px;height:32px;border-radius:50%;background:#1e293b;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:var(--muted)}
+.sb-rank.gold{background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#1a1400}
+.sb-rank.silver{background:linear-gradient(135deg,#94a3b8,#64748b);color:#0a0f1a}
+.sb-rank.bronze{background:linear-gradient(135deg,#fb923c,#ea580c);color:#fff}
+.sb-avatar{width:28px;height:28px;border-radius:50%;margin-right:8px}
+.sb-name{flex:1;font-weight:600}
+.sb-score{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;color:var(--accent2)}
+.sb-you{font-size:11px;background:rgba(34,211,238,.15);color:var(--accent);padding:2px 8px;border-radius:999px;margin-left:8px}
+
+/* results */
+.results{text-align:center}
+.trophy{font-size:72px;margin-bottom:8px;animation:bounce 1.5s ease infinite}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.final-rank{font-size:clamp(28px,5vw,42px);font-weight:700;margin:0 0 8px}
+.final-score{font-family:'JetBrains Mono',monospace;font-size:clamp(24px,4vw,36px);color:var(--accent2);margin:0 0 24px}
+.leaderboard{display:flex;flex-direction:column;gap:10px;max-height:220px;overflow:auto;padding-right:4px}
+
+/* reduced motion */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- JOIN SCREEN -->
+  <div class="screen on" id="s-join">
+    <h1>Homophone <span>Showdown</span></h1>
+    <p class="sub">Real-time multiplayer · Same URL = same room · Tricky homophones only</p>
+    <div class="card">
+      <div class="input-row">
+        <label>Room Code</label>
+        <input type="text" id="roomInput" maxlength="4" placeholder="ABCD" autocomplete="off" spellcheck="false">
+        <label>Your Name</label>
+        <input type="text" id="nameInput" maxlength="16" placeholder="Nickname" autocomplete="off">
+        <div class="error" id="err"></div>
+        <button class="btn btn-primary" id="joinBtn">Join Game</button>
+      </div>
+      <p class="hint">Share the room code. Everyone opens this same link.</p>
+    </div>
+  </div>
+
+  <!-- WAITING SCREEN -->
+  <div class="screen waiting" id="s-wait">
+    <div class="spinner"></div>
+    <p>Waiting for host to start…</p>
+    <div class="room-display" id="showCode"></div>
+    <p style="color:var(--muted);font-size:13px">Players: <b id="waitCount">0</b></p>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div class="screen" id="s-game">
+    <div class="game-header">
+      <div class="player-badge">
+        <div class="player-avatar" id="myAvatar"></div>
+        <div class="player-info">
+          <div class="player-name" id="myName"></div>
+          <div class="player-score" id="myScore">0</div>
+        </div>
+      </div>
+      <div style="font-size:13px;color:var(--muted)">Q <b id="qNum">1</b>/<span id="qTot">15</span></div>
+    </div>
+    <div class="timer-bar"><div class="timer-fill" id="timerFill"></div></div>
+
+    <div class="qcard">
+      <div class="qmeta">
+        <span class="qtag" id="qTag"></span>
+        <span style="color:var(--muted)" id="qCat"></span>
+      </div>
+      <p class="qtext" id="qText"></p>
+      <div class="options" id="opts"></div>
+      <div class="feedback" id="fb"></div>
+    </div>
+
+    <div class="scoreboard" id="scoreboard"></div>
+  </div>
+
+  <!-- RESULTS SCREEN -->
+  <div class="screen" id="s-end">
+    <div class="trophy" id="trophy">🏆</div>
+    <h2 class="final-rank" id="finalRank"></h2>
+    <p class="final-score" id="finalScore"></p>
+    <div class="leaderboard" id="finalBoard"></div>
+    <button class="btn btn-primary" style="max-width:300px;margin-top:16px" onclick="location.reload()">Play Again</button>
+  </div>
+</div>
+<script>
+// ─── HOMOPHONE QUESTIONS ─────────────────────────────────────────
+// Each: {sentence, blankWord, options[4], answerIdx, explanation, difficulty, category}
+const QUESTIONS = [
+  // EASY - Common homophones
+  {s:"She ____ her hand to wave.", blank:"raised", opts:["raised","razed","raysed","raized"], a:0, exp:"<b>raised</b> = lifted up. <b>razed</b> = demolished.", diff:"easy", cat:"Common"},
+  {s:"The ____ blew strongly at the coast.", blank:"wind", opts:["wind","wynd","wined","whind"], a:0, exp:"<b>wind</b> (noun) = moving air. <b>wynd</b> = narrow lane (Scots).", diff:"easy", cat:"Common"},
+  {s:"He ____ the ball across the field.", blank:"threw", opts:["threw","through","thru","threwed"], a:0, exp:"<b>threw</b> = past of throw. <b>through</b> = from one side to the other.", diff:"easy", cat:"Common"},
+  {s:"We ____ two apples each.", blank:"ate", opts:["ate","eight","ait","atee"], a:0, exp:"<b>ate</b> = past of eat. <b>eight</b> = the number 8.", diff:"easy", cat:"Common"},
+  {s:"The ____ was very bright today.", blank:"sun", opts:["sun","son","sunn","sone"], a:0, exp:"<b>sun</b> = star. <b>son</b> = male child.", diff:"easy", cat:"Common"},
+
+  // MEDIUM - Trickier pairs
+  {s:"The ____ of the mountain was steep.", blank:"ascent", opts:["ascent","assent","asent","ascentt"], a:0, exp:"<b>ascent</b> = upward climb. <b>assent</b> = agreement.", diff:"med", cat:"Tricky"},
+  {s:"She gave her ____ to the plan.", blank:"assent", opts:["assent","ascent","asent","asset"], a:0, exp:"<b>assent</b> = agreement. <b>ascent</b> = climb.", diff:"med", cat:"Tricky"},
+  {s:"The ____ smelled wonderful.", blank:"scent", opts:["scent","sent","cent","scentt"], a:0, exp:"<b>scent</b> = smell. <b>sent</b> = dispatched. <b>cent</b> = 1/100 dollar.", diff:"med", cat:"Tricky"},
+  {s:"He ____ the package yesterday.", blank:"sent", opts:["sent","scent","cent","sented"], a:0, exp:"<b>sent</b> = past of send.", diff:"med", cat:"Tricky"},
+  {s:"The ____ was exactly one ____ long.", blank:"cent", opts:["cent","sent","scent","sented"], a:0, exp:"<b>cent</b> = 1/100 of a dollar.", diff:"med", cat:"Tricky"},
+  {s:"Please ____ for me at the station.", blank:"wait", opts:["wait","weight","waite","wayt"], a:0, exp:"<b>wait</b> = stay. <b>weight</b> = heaviness.", diff:"med", cat:"Tricky"},
+  {s:"The box was heavy for its ____ .", blank:"weight", opts:["weight","wait","waite","wayte"], a:0, exp:"<b>weight</b> = heaviness.", diff:"med", cat:"Tricky"},
+  {s:"The ____ flew over the barn.", plain:"plain", opts:["plain","plane","plan","plaine"], a:0, exp:"<b>plain</b> = simple / flat land. <b>plane</b> = aircraft / flat surface.", diff:"med", cat:"Tricky"},
+  {s:"The ____ landed smoothly.", blank:"plane", opts:["plane","plain","plan","planed"], a:0, exp:"<b>plane</b> = aircraft.", diff:"med", cat:"Tricky"},
+
+  // HARD - Less common / easily confused
+  {s:"The ____ of the contract was clear.", blank:"tenor", opts:["tenor","tenure","tenner","tensor"], a:0, exp:"<b>tenor</b> = general meaning / high male voice. <b>tenure</b> = job security.", diff:"hard", cat:"Advanced"},
+  {s:"She earned ____ after ten years.", blank:"tenure", opts:["tenure","tenor","tenner","tenser"], a:0, exp:"<b>tenure</b> = permanent job status.", diff:"hard", cat:"Advanced"},
+  {s:"The ____ of the violin was haunting.", blank:"timbre", opts:["timbre","timber","tamber","timbrel"], a:0, exp:"<b>timbre</b> = tone quality (pronounced TAM-ber). <b>timber</b> = wood.", diff:"hard", cat:"Advanced"},
+  {s:"They cut the ____ for the house frame.", blank:"timber", opts:["timber","timbre","tamber","timbrel"], a:0, exp:"<b>timber</b> = prepared wood.", diff:"hard", cat:"Advanced"},
+  {s:"The ____ was full of errors.", blank:"errata", opts:["errata","eratta","erata","erratia"], a:0, exp:"<b>errata</b> = list of errors in a printed work (plural of erratum).", diff:"hard", cat:"Advanced"},
+  {s:"He spoke with great ____ .", blank:"verve", opts:["verve","verv","vervee","verve"], a:0, exp:"<b>verve</b> = vigor, spirit. Sounds like 'curve'.", diff:"hard", cat:"Advanced"},
+  {s:"The ____ of the river was dangerous.", blank:"current", opts:["current","currant","curant","currunt"], a:0, exp:"<b>current</b> = flow / present time. <b>currant</b> = dried grape.", diff:"hard", cat:"Advanced"},
+  {s:"The scone had ____ in it.", blank:"currant", opts:["currant","current","curant","currunt"], a:0, exp:"<b>currant</b> = small dried fruit.", diff:"hard", cat:"Advanced"},
+  {s:"The ____ of the ship was rusted.", blank:"anchor", opts:["anchor","anker","ankor","ancor"], a:0, exp:"<b>anchor</b> = ship's hook. <b>anker</b> = old unit of volume.", diff:"hard", cat:"Advanced"},
+
+  // TRAP - Near-homophones / spelling traps
+  {s:"The ____ was a master of disguise.", blank:"chameleon", opts:["chameleon","cameleon","chamelion","chamelleon"], a:0, exp:"<b>chameleon</b> = color-changing lizard. Not 'cameleon'.", diff:"trap", cat:"Spelling Trap"},
+  {s:"______ going to the party?", blank:"Who's", opts:["Who's","Whose","Whos","Whoose"], a:0, exp:"<b>Who's</b> = Who is. <b>Whose</b> = possessive.", diff:"trap", cat:"Spelling Trap"},
+  {s:"______ book is this?", blank:"Whose", opts:["Whose","Who's","Whos","Whoose"], a:0, exp:"<b>Whose</b> = possessive. <b>Who's</b> = Who is.", diff:"trap", cat:"Spelling Trap"},
+  {s:"The ____ was delicious.", blank:"dessert", opts:["dessert","desert","desart","dessart"], a:0, exp:"<b>dessert</b> = sweet course (two s's = want seconds). <b>desert</b> = arid land / abandon.", diff:"trap", cat:"Spelling Trap"},
+  {s:"Don't ____ me in the desert.", blank:"desert", opts:["desert","dessert","desart","desertt"], a:0, exp:"<b>desert</b> (verb) = abandon. <b>dessert</b> = sweet.", diff:"trap", cat:"Spelling Trap"},
+  {s:"The ____ of the machine was broken.", blank:"principal", opts:["principal","principle","principel","principul"], a:0, exp:"<b>principal</b> = main / head of school. <b>principle</b> = rule.", diff:"trap", cat:"Spelling Trap"},
+  {s:"It's a matter of ____ .", blank:"principle", opts:["principle","principal","principel","principul"], a:0, exp:"<b>principle</b> = fundamental truth. <b>principal</b> = main.", diff:"trap", cat:"Spelling Trap"},
+  {s:"The ____ was very quiet.", blank:"aisle", opts:["aisle","isle","ile","aisl"], a:0, exp:"<b>aisle</b> = passage between rows. <b>isle</b> = island.", diff:"trap", cat:"Spelling Trap"},
+  {s:"The ____ was surrounded by water.", blank:"isle", opts:["isle","aisle","ile","isll"], a:0, exp:"<b>isle</b> = island. <b>aisle</b> = passageway.", diff:"trap", cat:"Spelling Trap"},
+  {s:"He ____ the door quietly.", blank:"closed", opts:["closed","clozed","claused","cloused"], a:0, exp:"<b>closed</b> = shut. <b>claused</b> = legal term.", diff:"trap", cat:"Spelling Trap"},
+];
+
+// ─── GAME STATE ──────────────────────────────────────────────────
+let ws = null;
+let room = null;
+let myName = null;
+let myId = null;
+let players = {};
+let hostId = null;
+let gameState = 'lobby';
+let currentQ = 0;
+let answered = false;
+let myAnswer = null;
+let timerInterval = null;
+const Q_TIME = 20000; // 20 seconds per question
+
+const SCREENS = ['s-join','s-wait','s-game','s-end'];
+
+function showScreen(id){
+  SCREENS.forEach(s=>document.getElementById(s).classList.toggle('on', s===id));
+}
+
+// ─── JOIN LOGIC ──────────────────────────────────────────────────
+const roomInput = document.getElementById('roomInput');
+const nameInput = document.getElementById('nameInput');
+const joinBtn = document.getElementById('joinBtn');
+const errEl = document.getElementById('err');
+
+roomInput.addEventListener('input', e=>{
+  e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,'');
+});
+joinBtn.addEventListener('click', joinGame);
+roomInput.addEventListener('keydown', e=>{ if(e.key==='Enter') joinGame(); });
+nameInput.addEventListener('keydown', e=>{ if(e.key==='Enter') joinGame(); });
+
+// Auto-fill room from URL
+const urlParams = new URLSearchParams(location.search);
+if(urlParams.get('room')){
+  roomInput.value = urlParams.get('room').toUpperCase();
+  roomInput.readOnly = true;
+  roomInput.style.background = '#050914';
+}
+
+function joinGame(){
+  const code = roomInput.value.trim().toUpperCase();
+  const name = nameInput.value.trim() || 'Player';
+  if(code.length!==4){ errEl.textContent='Enter the 4-letter room code'; return; }
+  errEl.textContent='';
+  joinBtn.disabled = true;
+  joinBtn.textContent = 'Joining…';
+  room = code;
+  myName = name.slice(0,16);
+  connect();
+}
+
+function connect(){
+  ws = new WebSocket(`ws://${location.host}/ws/${room}/player`);
+  ws.onopen = ()=>{
+    ws.send(JSON.stringify({type:'join', name:myName}));
+  };
+  ws.onmessage = e=> handleMsg(JSON.parse(e.data));
+  ws.onclose = ()=>{
+    if(!document.getElementById('s-end').classList.contains('on')){
+      setTimeout(connect, 2000);
+    }
+  };
+  ws.onerror = ()=>{ errEl.textContent='Connection failed. Is the game running?'; };
+}
+
+function handleMsg(msg){
+  if(msg.type==='joined'){
+    myId = msg.id;
+    document.getElementById('showCode').textContent = msg.room;
+    document.getElementById('myName').textContent = myName;
+    document.getElementById('myAvatar').textContent = myName[0].toUpperCase();
+    document.getElementById('myAvatar').style.background = colorFromName(myName);
+    showScreen('s-wait');
+    joinBtn.disabled = false;
+    joinBtn.textContent = 'Join Game';
+  }else if(msg.type==='state'){
+    renderState(msg);
+  }else if(msg.type==='kicked'){
+    alert('You were removed from the game.');
+    location.reload();
+  }else if(msg.type==='error'){
+    errEl.textContent = msg.msg;
+    joinBtn.disabled = false;
+    joinBtn.textContent = 'Join Game';
+  }else if(msg.type==='answer_ack'){
+    answered = true;
+    document.querySelectorAll('.opt').forEach(b=>b.classList.add('locked'));
+  }
+}
+
+function colorFromName(name){
+  let hash = 0;
+  for(let i=0;i<name.length;i++) hash = name.charCodeAt(i) + ((hash<<5)-hash);
+  const hues = ['#22d3ee','#fbbf24','#22c55e','#ef4444','#a78bfa','#fb923c','#ec4899','#3b82f6'];
+  return hues[Math.abs(hash)%hues.length];
+}
+
+// ─── RENDER STATE ────────────────────────────────────────────────
+function renderState(s){
+  gameState = s.phase;
+  const wasPlaying = document.getElementById('s-game').classList.contains('on');
+
+  if(s.phase==='lobby'){
+    showScreen('s-wait');
+    document.getElementById('waitCount').textContent = s.players.length;
+  }else if(s.phase==='question' && s.question){
+    if(!wasPlaying) showScreen('s-game');
+    answered = false;
+    myAnswer = null;
+    currentQ = s.q_index;
+    startTimer(s.timeLeft || Q_TIME);
+    renderQuestion(s.question, s.q_index, s.total_q);
+    renderScoreboard(s.players);
+  }else if(s.phase==='answer' && s.question){
+    showScreen('s-game');
+    stopTimer();
+    renderAnswer(s.question, s.player_answers, s.correct_idx);
+    renderScoreboard(s.players);
+  }else if(s.phase==='leaderboard' || s.phase==='ended'){
+    stopTimer();
+    showScreen('s-end');
+    renderFinal(s.players);
+  }
+}
+
+function startTimer(ms){
+  stopTimer();
+  const fill = document.getElementById('timerFill');
+  fill.style.width = '100%';
+  fill.classList.remove('warn');
+  const start = Date.now();
+  const end = start + ms;
+  timerInterval = setInterval(()=>{
+    const left = end - Date.now();
+    const pct = Math.max(0, left/ms)*100;
+    fill.style.width = pct + '%';
+    if(pct < 20) fill.classList.add('warn');
+    if(left <= 0) stopTimer();
+  }, 50);
+}
+
+function stopTimer(){
+  if(timerInterval){ clearInterval(timerInterval); timerInterval = null; }
+}
+
+function renderQuestion(q, idx, total){
+  document.getElementById('qNum').textContent = idx+1;
+  document.getElementById('qTot').textContent = total;
+  const tag = document.getElementById('qTag');
+  tag.textContent = q.diff.toUpperCase();
+  tag.className = 'qtag qtag-'+q.diff;
+  document.getElementById('qCat').textContent = q.cat;
+  document.getElementById('qText').innerHTML = q.sentence.replace('____', '<span class="blank">____</span>');
+  const grid = document.getElementById('opts');
+  grid.innerHTML = q.opts.map((opt,i)=>`<button class="opt" data-idx="${i}" onclick="sendAnswer(${i})"><span class="k">${i+1}</span><span>${escapeHtml(opt)}</span></button>`).join('');
+  document.getElementById('fb').className = 'feedback';
+}
+
+function renderAnswer(q, playerAnswers, correctIdx){
+  const myAns = playerAnswers?.[myId];
+  const grid = document.getElementById('opts');
+  grid.innerHTML = q.opts.map((opt,i)=>`<button class="opt ${i===correctIdx?'correct':''} ${myAns===i && i!==correctIdx?'wrong':''} locked" data-idx="${i}"><span class="k">${i+1}</span><span>${escapeHtml(opt)}</span></button>`).join('');
+  const fb = document.getElementById('fb');
+  if(myAns!==undefined){
+    if(myAns===correctIdx){
+      fb.textContent = '';
+      fb.innerHTML = '<div class="head">✅ Correct! +10 pts</div><div class="why">'+q.exp+'</div>';
+      fb.className = 'feedback good on';
+    }else{
+      fb.textContent = '';
+      fb.innerHTML = '<div class="head">❌ Incorrect</div><div class="why">Correct: <b>'+escapeHtml(q.opts[correctIdx])+'</b>. '+q.exp+'</div>';
+      fb.className = 'feedback bad on';
+    }
+  }
+}
+
+function renderScoreboard(list){
+  const board = document.getElementById('scoreboard');
+  const sorted = [...list].sort((a,b)=>b.score-a.score);
+  board.innerHTML = sorted.map((p,i)=>`<div class="sb-row"><div class="sb-rank ${i===0?'gold':i===1?'silver':i===2?'bronze':''}">${i+1}</div><div class="sb-avatar" style="background:${colorFromName(p.name)}">${p.name[0].toUpperCase()}</div><div class="sb-name">${escapeHtml(p.name)}${p.id===myId?'<span class="sb-you">YOU</span>':''}</div><div class="sb-score">${p.score}</div></div>`).join('');
+}
+
+function renderFinal(list){
+  const sorted = [...list].sort((a,b)=>b.score-a.score);
+  const me = list.find(p=>p.id===myId);
+  const rank = sorted.findIndex(p=>p.id===myId)+1;
+  const suffix = rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':'';
+  document.getElementById('trophy').textContent = rank===1?'🏆':rank<=3?'🥈':'🎖️';
+  document.getElementById('finalRank').textContent = `${suffix} You finished ${rank}${ordinal(rank)}!`;
+  document.getElementById('finalScore').textContent = `${me?.score||0} points`;
+  document.getElementById('finalBoard').innerHTML = sorted.map((p,i)=>`<div class="sb-row"><div class="sb-rank ${i===0?'gold':i===1?'silver':i===2?'bronze':''}">${i+1}</div><div class="sb-avatar" style="background:${colorFromName(p.name)}">${p.name[0].toUpperCase()}</div><div class="sb-name">${escapeHtml(p.name)}${p.id===myId?'<span class="sb-you">YOU</span>':''}</div><div class="sb-score">${p.score}</div></div>`).join('');
+}
+
+function sendAnswer(idx){
+  if(answered) return;
+  answered = true;
+  myAnswer = idx;
+  ws.send(JSON.stringify({type:'answer', ans:idx}));
+  document.querySelectorAll('.opt').forEach(b=>b.classList.add('locked'));
+}
+
+function escapeHtml(s){
+  return String(s).replace(/&/g,'&').replace(/</g,'<').replace(/>/g,'>').replace(/"/g,'"').replace(/'/g,"'");
+}
+function ordinal(n){const s=['th','st','nd','rd'],v=n%100;return s[(v-20)%10]||s[v]||s[0];}
+
+// ─── KEYBOARD SHORTCUTS ──────────────────────────────────────────
+document.addEventListener('keydown',e=>{
+  if(document.getElementById('s-game').classList.contains('on')){
+    if(e.key>='1' && e.key<='4') sendAnswer(parseInt(e.key)-1);
+  }
+});
+</script>
+</body>
+</html>
