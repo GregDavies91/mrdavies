@@ -267,7 +267,8 @@ function joinGame(){
 }
 
 function connect(){
-  ws = new WebSocket(`ws://${location.host}/ws/${room}/player`);
+  const WS_HOST = window.WS_HOST || (location.protocol==='https:' ? 'wss://mrdavies.onrender.com' : location.host);
+  ws = new WebSocket(`${WS_HOST.startsWith('ws')?'':'ws://'}${WS_HOST}/ws/${room}/player`);
   ws.onopen = ()=>{
     ws.send(JSON.stringify({type:'join', name:myName}));
   };
