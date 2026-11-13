@@ -1,7 +1,7 @@
 // Homophone Showdown — Cloudflare Worker (static frontend + WebSocket relay)
 // Serves game HTML; students' browsers connect to Render for live multiplayer.
 
-const GAME_REPO = 'https://raw.githubusercontent.com/GregDavies91/mrdavies/main';
+const GAME_REPO = 'https://raw.githubusercontent.com/GregDavies91/mrdavies/main/wordgame';
 
 export default {
   async fetch(request, env) {
